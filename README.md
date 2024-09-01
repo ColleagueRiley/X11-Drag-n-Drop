@@ -69,9 +69,9 @@ You also must set the XDnD version using a pointer, version 5 should be used as 
 
 ```c
 const Atom XdndAware = XInternAtom(display, "XdndAware", False);
-const char version = 5;
+const char myversion = 5;
 
-XChangeProperty(display, window, XdndAware, 4, 32, PropModeReplace, &version, 1);
+XChangeProperty(display, window, XdndAware, 4, 32, PropModeReplace, &myversion, 1);
 ```
 
 # Step 3 (Handle XDnD events via ClientMessage)
@@ -85,20 +85,50 @@ int64_t source, version;
 int32_t format;
 ```
 
-Now the `ClientMessage` event can be handled.
+Now the [`ClientMessage`](E.xclient.message_type)  event can be handled.
 
 ```c
 case ClientMessage:
 ```
 
+The ClientMessage event structure can be accessed via `XEvent.xclient`.
+
+`message_type` is an attribute in the structure, it holds what the message type is. We will use it to check if the message type is an XDnD message.
+
+There are XDnD 3 events we will handle, `XdndEnter`, `XdndPosition` and `XdndDrop`.
+
 ### Step 3.1 (XdndEnter)
+
+XdndEnter is sent when the drop enters the target window.
 
 ```c
 if (E.xclient.message_type == XdndEnter) {
+```
+
+First, RGFW inits the required variables.
+
+* count for the count of the format list, 
+* formats, the list of supported formats and 
+* real_formats which is used here to avoid running `malloc` for each drop
+
+```c
     unsigned long count;
     Atom* formats;
     Atom real_formats[6];
+```
 
+We can also create a bool for checking if the format is a list or if there is only one format.
+
+This can be done by using the xclient's `data` attribute. Data is a list of data about the event. 
+
+the first item is the source window.
+
+The second item of the data includes two values, if the format is a list or not and the version of XDnD used.  
+To get the bool value, you can simply check the first bit, the version is stored 24 bits after (the final 40 bits). 
+
+The format should be set to None for now, also make sure the version is less than or equals to 5. Otherwise there's probably an issue because 5 is the newest version.
+
+```c
     Bool list = E.xclient.data.l[1] & 1;
 
     source = E.xclient.data.l[0];
@@ -108,6 +138,8 @@ if (E.xclient.message_type == XdndEnter) {
     if (version > 5)
         break;
 ```
+
+If the format is a list, we'll have to get the format list from the source window's `XDndTypeList` value using [XGetWindowProperty](https://www.x.org/releases/X11R7.5/doc/man/man3/XChangeProperty.3.html)
 
 ```c
     if (list) {
@@ -130,6 +162,8 @@ if (E.xclient.message_type == XdndEnter) {
     } 
 ```
 
+Otherwise the format can be found using the leftover xclient values (2 - 4)
+
 ```c
     else {
         count = 0;
@@ -145,32 +179,25 @@ if (E.xclient.message_type == XdndEnter) {
     }
 ```
 
+Now that we have the format array, we can check if the format matches any of the formats we're looking for.
+
+The list should also be freed using [`XFree`](https://software.cfht.hawaii.edu/man/x11/XFree(3x)) if it was recived using `XGetWindowProperty`.
+
 ```c
-    uint32_t i;
+    uint32_t i, j;
     for (i = 0; i < (uint32_t)count; i++) {
         char* name = XGetAtomName((Display*) display, formats[i]);
 
-        char* links[2] = { (char*) (const char*) "text/uri-list", (char*) (const char*) "text/plain" };
-        for (; 1; name++) {
-            uint32_t j;
-            for (j = 0; j < 2; j++) {
-                if (*links[j] != *name) {
-                    links[j] = (char*) (const char*) "\1";
-                    continue;
-                }
-
-                if (*links[j] == '\0' && *name == '\0')
-                    format = formats[i];
-
-                if (*links[j] != '\0' && *links[j] != '\1')
-                    links[j]++;
-            }
-
-            if (*name == '\0')
+        char* links[2] = { "text/uri-list", "text/plain" };
+        for (j = 0; j < 2; j++) {
+            if (strcmp(name, links[j]) == 0) {
+                format = formats[i];
+                i = count + 1;
                 break;
+            }
         }
     }
-
+    
     if (list) {
         XFree(formats);
     }
@@ -180,11 +207,26 @@ if (E.xclient.message_type == XdndEnter) {
 ```
 
 ### Step 3.2 (XdndPosition)
+XdndPosition is used when the drop position is updated.
 
+Before we handle the event, make sure the version is correct.
 ```c
 if (E.xclient.message_type == XdndPosition && version <= 5)) {
+```
+
+The absolute X and Y can be found using the second item of the data list.
+
+The X = the last 32 bits.
+The Y = the first 32 bits.
+
+```c
     const int32_t xabs = (E.xclient.data.l[2] >> 16) & 0xffff;
     const int32_t yabs = (E.xclient.data.l[2]) & 0xffff;
+```
+
+Now the absolute X and Y can be translated to the actual X and Y coordanates of the drop position using [XTranslateCoordinates](https://tronche.com/gui/x/xlib/window-information/XTranslateCoordinates.html).
+
+```c
     Window dummy;
     int32_t xpos, ypos;
 
@@ -197,6 +239,13 @@ if (E.xclient.message_type == XdndPosition && version <= 5)) {
    
     printf("File drop starting at %i %i\n", xpos, ypos);
 ```
+
+Now a response must be sent back to the source window. The response uses `XdndStatus` to tell the window it has recvied the message. 
+
+We should also tell the source the action accepted will the data. (`XdndActionCopy`)
+
+The message can be sound out via [`XSendEvent`](https://tronche.com/gui/x/xlib/event-handling/XSendEvent.html) make sure you also send out [`XFlush`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSync.3.html) to make sure the event is puhsed out.
+
 
 ```c
     XEvent reply = { ClientMessage };
@@ -220,12 +269,27 @@ if (E.xclient.message_type == XdndPosition && version <= 5)) {
 ```
 
 ### Step 3.3 (XdndDrop)
+Before we handle the event, make sure the version is correct.
+
+XdndDrop occours when the item has been dropped.
 
 ```c
 if (E.xclient.message_type = XdndDrop && version <= 5) {
-    if (format) {
-        Time time = CurrentTime;
+```
 
+First we should make sure we actually registered a valid format ealier. 
+
+```c
+    if (format) {
+```
+
+Now we can use [XConvertSection](https://tronche.com/gui/x/xlib/window-information/XConvertSelection.html) to rrequest that the selection is converted to the format. 
+
+We will get the result in a `SelectionNotify` event.
+
+```c
+        // newer versions of xDnD require us to tell the source our time 
+        Time time = CurrentTime;
         if (version >= 1)
             time = E.xclient.data.l[2];
 
@@ -239,6 +303,8 @@ if (E.xclient.message_type = XdndDrop && version <= 5) {
 ```
 
 Else, there is no drop data and the drop has ended. XDnD versions 2 and older require the target explictially tell the source when the drop has ended.
+
+This can be done by sending out a `ClientMessage` event with the `XdndFinished` message type.
 
 ```c
     else if (version >= 2) {
@@ -258,16 +324,24 @@ Else, there is no drop data and the drop has ended. XDnD versions 2 and older re
 ```
 
 # Step 4 (Get XDnD drop data via ClientMessage and end the interaction)
+Now we can recive the converted selection from the `SlectionNotify` event
+
 ```c
 case SelectionNotify: {
 ```
+
+To do this, first make sure the property that was converted was the XdndSelection. 
 
 ```c
 /* this is only for checking for drops */
 
 if (E.xselection.property != XdndSelection)
     break;
+```
 
+Now, `XGetWindowpropery` can be used to get the selection data.
+
+```c
 char* data;
 unsigned long result;
 
@@ -275,60 +349,28 @@ Atom actualType;
 int32_t actualFormat;
 unsigned long bytesAfter;
 
-XGetWindowProperty((Display*) display, E.xselection.requestor, E.xselection.property, 0, LONG_MAX, False, E.xselection.target, &actualType, &actualFormat, &result, &bytesAfter, (unsigned char**) &data);
+XGetWindowProperty((Display*) display, E.xselection.requestor, E.xselection.property, \
+                                    0, LONG_MAX, False, E.xselection.target, &actualType, 
+                                    &actualFormat, &result, &bytesAfter, 
+                                    (unsigned char**) &data);
 
 if (result == 0)
     break;
+
+printf("File dropped: %s\n", data);
 ```
 
+The data should also be freed once you're done using it. 
+
+If you want to use it after the event is done you should allocate a seperate buffer and copy the data over.
+
 ```c
-const char* prefix = (const char*)"file://";
-
-char* line;
-
-while ((line = strtok(data, "\r\n"))) {
-    char path[MAX_PATH];
-
-    data = NULL;
-
-    if (line[0] == '#')
-        continue;
-
-    char* l;
-    for (l = line; 1; l++) {
-        if ((l - line) > 7)
-            break;
-        else if (*l != prefix[(l - line)])
-            break;
-        else if (*l == '\0' && prefix[(l - line)] == '\0') {
-            line += 7;
-            while (*line != '/')
-                line++;
-            break;
-        } else if (*l == '\0')
-            break;
-    }
-
-    size_t index = 0;
-    while (*line) {
-        if (line[0] == '%' && line[1] && line[2]) {
-            const char digits[3] = { line[1], line[2], '\0' };
-            path[index] = (char) strtol(digits, NULL, 16);
-            line += 2;
-        } else
-            path[index] = *line;
-
-        index++;
-        line++;
-    }
-    path[index] = '\0';
-        
-    printf("File dropped: %s\n", path);
-}
-
 if (data)
     XFree(data);
 ```
+
+the drop has ended and XDnD versions 2 and older require the target explictially tell the source when the drop has ended.
+This can be done by sending out a `ClientMessage` event with the `XdndFinished` message type.
 
 ```c
 if (version >= 2) {
@@ -342,5 +384,253 @@ if (version >= 2) {
 
     XSendEvent((Display*) display, source, False, NoEventMask, &reply);
     XFlush((Display*) display);
+}
+```
+
+## Full code example
+```c
+// This compiles with
+// gcc x11.c -lX11
+
+#include <X11/Xlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <stdint.h>
+#include <limits.h>
+
+int main(void) {
+    Display* display = XOpenDisplay(NULL);
+ 
+    Window window = XCreateSimpleWindow(display, 
+										RootWindow(display, DefaultScreen(display)), 
+										10, 10, 200, 200, 1,
+										BlackPixel(display, DefaultScreen(display)), WhitePixel(display, DefaultScreen(display)));
+ 
+    XSelectInput(display, window, ExposureMask | KeyPressMask);
+
+	const Atom wm_delete_window = XInternAtom((Display*) display, "WM_DELETE_WINDOW", False);
+	
+	/* Xdnd code */
+	
+	/* fetching data */
+	const Atom XdndTypeList = XInternAtom(display, "XdndTypeList", False);
+	const Atom XdndSelection = XInternAtom(display, "XdndSelection", False);
+
+	/* client messages */
+	const Atom XdndEnter = XInternAtom(display, "XdndEnter", False);
+	const Atom XdndPosition = XInternAtom(display, "XdndPosition", False);
+	const Atom XdndStatus = XInternAtom(display, "XdndStatus", False);
+	const Atom XdndLeave = XInternAtom(display, "XdndLeave", False);	
+	const Atom XdndDrop = XInternAtom(display, "XdndDrop", False);	
+	const Atom XdndFinished = XInternAtom(display, "XdndFinished", False);
+
+	/* actions */
+	const Atom XdndActionCopy = XInternAtom(display, "XdndActionCopy", False);
+	const Atom XdndActionMove = XInternAtom(display, "XdndActionMove", False);
+	const Atom XdndActionLink = XInternAtom(display, "XdndActionLink", False);
+	const Atom XdndActionAsk = XInternAtom(display, "XdndActionAsk", False);
+	const Atom XdndActionPrivate = XInternAtom(display, "XdndActionPrivate", False);
+
+	const Atom XdndAware = XInternAtom(display, "XdndAware", False);
+	const char myVersion = 5;
+	XChangeProperty(display, window, XdndAware, 4, 32, PropModeReplace, &myVersion, 1);
+
+    XMapWindow(display, window);
+	
+	XEvent E;
+	Bool running = True;
+
+	int64_t source, version;
+	int32_t format;
+
+    while (running) {
+        XNextEvent(display, &E);
+
+        switch (E.type) {
+			case KeyPress: running = False; break;
+			case ClientMessage:
+				if (E.xclient.data.l[0] == (int64_t) wm_delete_window) {
+					running = False;
+					break;
+				}
+				
+				if (E.xclient.message_type == XdndEnter) {
+					unsigned long count;
+					Atom* formats;
+					Atom real_formats[6];
+
+					Bool list = E.xclient.data.l[1] & 1;
+
+					source = E.xclient.data.l[0];
+					version = E.xclient.data.l[1] >> 24;
+					format = None;
+
+					if (version > 5)
+						break;
+
+					if (list) {
+						Atom actualType;
+						int32_t actualFormat;
+						unsigned long bytesAfter;
+
+						XGetWindowProperty((Display*) display,
+							source,
+							XdndTypeList,
+							0,
+							LONG_MAX,
+							False,
+							4,
+							&actualType,
+							&actualFormat,
+							&count,
+							&bytesAfter,
+							(unsigned char**) &formats);
+					} else {
+						count = 0;
+
+						if (E.xclient.data.l[2] != None)
+							real_formats[count++] = E.xclient.data.l[2];
+						if (E.xclient.data.l[3] != None)
+							real_formats[count++] = E.xclient.data.l[3];
+						if (E.xclient.data.l[4] != None)
+							real_formats[count++] = E.xclient.data.l[4];
+						
+						formats = real_formats;
+					}
+
+					uint32_t i, j;
+					for (i = 0; i < (uint32_t)count; i++) {
+						char* name = XGetAtomName((Display*) display, formats[i]);
+
+						char* links[2] = {"text/uri-list", "text/plain" };
+						for (j = 0; j < 2; j++) {
+							if (strcmp(name, links[j]) == 0) {
+								format = formats[i];
+								i = count + 1;
+								break;
+							}
+						}
+					}
+					
+					if (list) {
+						XFree(formats);
+					}
+
+					break;
+				}
+				if (E.xclient.message_type == XdndPosition) {
+					const int32_t xabs = (E.xclient.data.l[2] >> 16) & 0xffff;
+					const int32_t yabs = (E.xclient.data.l[2]) & 0xffff;
+					Window dummy;
+					int32_t xpos, ypos;
+
+					if (version > 5)
+						break;
+
+					XTranslateCoordinates((Display*) display,
+						XDefaultRootWindow((Display*) display),
+						(Window) window,
+						xabs, yabs,
+						&xpos, &ypos,
+						&dummy);
+					
+					printf("File drop starting at %i %i\n", xpos, ypos);
+					
+					XEvent reply = { ClientMessage };
+					reply.xclient.window = source;
+					reply.xclient.message_type = XdndStatus;
+					reply.xclient.format = 32;
+					reply.xclient.data.l[0] = (long) window;
+					reply.xclient.data.l[2] = 0;
+					reply.xclient.data.l[3] = 0;
+
+					if (format) {
+						reply.xclient.data.l[1] = 1;
+						if (version >= 2)
+							reply.xclient.data.l[4] = XdndActionCopy;
+					}
+
+					XSendEvent((Display*) display, source, False, NoEventMask, &reply);
+					XFlush((Display*) display);
+					break;
+				}
+
+				if (E.xclient.message_type = XdndDrop && version <= 5) {
+					if (format) {
+						Time time = CurrentTime;
+
+						if (version >= 1)
+							time = E.xclient.data.l[2];
+
+						XConvertSelection((Display*) display,
+							XdndSelection,
+							format,
+							XdndSelection,
+							(Window) window,
+							time);
+					} else if (version >= 2) {
+						XEvent reply = { ClientMessage };
+						reply.xclient.window = source;
+						reply.xclient.message_type = XdndFinished;
+						reply.xclient.format = 32;
+						reply.xclient.data.l[0] = (long) window;
+						reply.xclient.data.l[1] = 0;
+						reply.xclient.data.l[2] = None;
+
+						XSendEvent((Display*) display, source,
+							False, NoEventMask, &reply);
+						XFlush((Display*) display);
+					}
+				}
+				break;
+		case SelectionNotify: {
+			/* this is only for checking for drops */
+			if (E.xselection.property != XdndSelection)
+				break;
+
+			char* data;
+			unsigned long result;
+
+			Atom actualType;
+			int32_t actualFormat;
+			unsigned long bytesAfter;
+
+			XGetWindowProperty((Display*) display, 
+											E.xselection.requestor, E.xselection.property, 
+											0, LONG_MAX, False, E.xselection.target, 
+											&actualType, &actualFormat, &result, &bytesAfter, 
+											(unsigned char**) &data);
+
+			if (result == 0)
+				break;
+
+			printf("File(s) dropped: %s\n", data);
+
+			if (data)
+				XFree(data);
+
+			if (version >= 2) {
+				XEvent reply = { ClientMessage };
+				reply.xclient.window = source;
+				reply.xclient.message_type = XdndFinished;
+				reply.xclient.format = 32;
+				reply.xclient.data.l[0] = (long) window;
+				reply.xclient.data.l[1] = result;
+				reply.xclient.data.l[2] = XdndActionCopy;
+
+				XSendEvent((Display*) display, source, False, NoEventMask, &reply);
+				XFlush((Display*) display);
+			}
+
+			break;
+		}
+
+			default: break;
+		}
+    }
+ 
+    XCloseDisplay(display);
 }
 ```

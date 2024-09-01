@@ -9,8 +9,6 @@
 #include <stdint.h>
 #include <limits.h>
 
-#define MAX_PATH 260
-
 int main(void) {
     Display* display = XOpenDisplay(NULL);
  
@@ -45,8 +43,8 @@ int main(void) {
 	const Atom XdndActionPrivate = XInternAtom(display, "XdndActionPrivate", False);
 
 	const Atom XdndAware = XInternAtom(display, "XdndAware", False);
-	const char version = 5;
-	XChangeProperty(display, window, XdndAware, 4, 32, PropModeReplace, &version, 1);
+	const char myVersion = 5;
+	XChangeProperty(display, window, XdndAware, 4, 32, PropModeReplace, &myVersion, 1);
 
     XMapWindow(display, window);
 	
@@ -111,31 +109,20 @@ int main(void) {
 						formats = real_formats;
 					}
 
-					uint32_t i;
+					uint32_t i, j;
 					for (i = 0; i < (uint32_t)count; i++) {
 						char* name = XGetAtomName((Display*) display, formats[i]);
 
-						char* links[2] = { (char*) (const char*) "text/uri-list", (char*) (const char*) "text/plain" };
-						for (; 1; name++) {
-							uint32_t j;
-							for (j = 0; j < 2; j++) {
-								if (*links[j] != *name) {
-									links[j] = (char*) (const char*) "\1";
-									continue;
-								}
-
-								if (*links[j] == '\0' && *name == '\0')
-									format = formats[i];
-
-								if (*links[j] != '\0' && *links[j] != '\1')
-									links[j]++;
-							}
-
-							if (*name == '\0')
+						char* links[2] = {"text/uri-list", "text/plain" };
+						for (j = 0; j < 2; j++) {
+							if (strcmp(name, links[j]) == 0) {
+								format = formats[i];
+								i = count + 1;
 								break;
+							}
 						}
 					}
-
+					
 					if (list) {
 						XFree(formats);
 					}
@@ -219,54 +206,16 @@ int main(void) {
 			int32_t actualFormat;
 			unsigned long bytesAfter;
 
-			XGetWindowProperty((Display*) display, E.xselection.requestor, E.xselection.property, 0, LONG_MAX, False, E.xselection.target, &actualType, &actualFormat, &result, &bytesAfter, (unsigned char**) &data);
+			XGetWindowProperty((Display*) display, 
+											E.xselection.requestor, E.xselection.property, 
+											0, LONG_MAX, False, E.xselection.target, 
+											&actualType, &actualFormat, &result, &bytesAfter, 
+											(unsigned char**) &data);
 
 			if (result == 0)
 				break;
 
-			const char* prefix = (const char*)"file://";
-
-			char* line;
-
-			while ((line = strtok(data, "\r\n"))) {
-				char path[MAX_PATH];
-
-				data = NULL;
-
-				if (line[0] == '#')
-					continue;
-
-				char* l;
-				for (l = line; 1; l++) {
-					if ((l - line) > 7)
-						break;
-					else if (*l != prefix[(l - line)])
-						break;
-					else if (*l == '\0' && prefix[(l - line)] == '\0') {
-						line += 7;
-						while (*line != '/')
-							line++;
-						break;
-					} else if (*l == '\0')
-						break;
-				}
-
-				size_t index = 0;
-				while (*line) {
-					if (line[0] == '%' && line[1] && line[2]) {
-						const char digits[3] = { line[1], line[2], '\0' };
-						path[index] = (char) strtol(digits, NULL, 16);
-						line += 2;
-					} else
-						path[index] = *line;
-
-					index++;
-					line++;
-				}
-				path[index] = '\0';
-					
-				printf("File dropped: %s\n", path);
-			}
+			printf("File(s) dropped: %s\n", data);
 
 			if (data)
 				XFree(data);
