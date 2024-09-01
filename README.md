@@ -360,6 +360,8 @@ if (result == 0)
 printf("File dropped: %s\n", data);
 ```
 
+This is the raw string data for the drop. If there are multiple drops, it will include multiple files seperated by a '\n'. If you'd prefer to have an array of strings, you'd have to parse the data into an array.
+
 The data should also be freed once you're done using it. 
 
 If you want to use it after the event is done you should allocate a seperate buffer and copy the data over.
@@ -390,7 +392,7 @@ if (version >= 2) {
 ## Full code example
 ```c
 // This compiles with
-// gcc x11.c -lX11
+// gcc example.c -lX11
 
 #include <X11/Xlib.h>
 #include <stdio.h>
