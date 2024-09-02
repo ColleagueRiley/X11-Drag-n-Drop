@@ -138,7 +138,7 @@ First, RGFW inits the required variables.
     Atom real_formats[6];
 ```
 
-We can also create a bool to check if the format is a list or if there is only one format.
+We can also create a bool to check if the supported formats are a list or if there is only one format.
 
 This can be done by using the xclient's `data` attribute. Data is a list of data about the event. 
 
@@ -240,7 +240,7 @@ The Y = the first 32 bits.
     const int32_t yabs = (E.xclient.data.l[2]) & 0xffff;
 ```
 
-Now the absolute X and Y can be translated to the actual X and Y coordinates of the drop position using [XTranslateCoordinates](https://tronche.com/gui/x/xlib/window-information/XTranslateCoordinates.html).
+The absolute X and Y can be translated to the actual X and Y coordinates of the drop position using [XTranslateCoordinates](https://tronche.com/gui/x/xlib/window-information/XTranslateCoordinates.html).
 
 ```c
     Window dummy;
