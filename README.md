@@ -1,7 +1,7 @@
 # RGFW Under the Hood: X11 Drag 'n Drop
 
 ## Introduction
-To handle Drag 'n Drop events with X11, you must use the XDnD protocol. Although the XDnD protocol is significantly more complicated than other Drag 'n Drop APIs, it's still relatively simple in theory. Although the theory is simple, implementing it is very tedious. You must properly communicate with the X11 server and the source window to get your desired results.
+To handle Drag 'n Drop events with X11, you must use the XDnD protocol. Although the XDnD protocol is significantly more complicated than other Drag 'n Drop APIs, it's still relatively simple in theory. However implementing it is very tedious, you must properly communicate with the X11 server and the source window.
 
 This tutorial explains how to handle the XDnD protocol and manage X11 Drag 'n Drop events. The code is based on RGFW's [source code](https://github.com/ColleagueRiley/RGFW).
 
