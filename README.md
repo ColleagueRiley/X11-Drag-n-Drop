@@ -78,17 +78,30 @@ XChangeProperty(display, window, XdndAware, 4, 32, PropModeReplace, &myversion, 
 Before any events are handled, some variables must be defined. 
 These variables are given to us by the source window and are used across multiple instances.  
 
-These variables are the source (of the drop), the XDnD Protocall version used, and the format of the drop data.
+These variables are the source window, the XDnD Protocall version used, and the format of the drop data.
 
 ```c
 int64_t source, version;
 int32_t format;
 ```
 
-The [`ClientMessage`](E.xclient.message_type)  event can be handled.
+Now the [`ClientMessage`](E.xclient.message_type)  event can be handled.
 
 ```c
 case ClientMessage:
+```
+
+First, I will create a generic XEvent structure for replying to XDnD events. This is optional, but it will mean we will have to do less work.
+
+This will send the event to the source window and include our window (the target) in the data.
+
+```c
+XEvent reply = { ClientMessage };
+reply.xclient.window = source;
+reply.xclient.format = 32;
+reply.xclient.data.l[0] = (long) window;
+reply.xclient.data.l[1] = 0;
+reply.xclient.data.l[2] = None;
 ```
 
 The ClientMessage event structure can be accessed via `XEvent.xclient`.
@@ -249,13 +262,7 @@ The message can be sound out via [`XSendEvent`](https://tronche.com/gui/x/xlib/e
 
 
 ```c
-    XEvent reply = { ClientMessage };
-    reply.xclient.window = source;
     reply.xclient.message_type = XdndStatus;
-    reply.xclient.format = 32;
-    reply.xclient.data.l[0] = (long) window;
-    reply.xclient.data.l[2] = 0;
-    reply.xclient.data.l[3] = 0;
 
     if (format) {
         reply.xclient.data.l[1] = 1;
@@ -309,13 +316,7 @@ This can be done by sending out a `ClientMessage` event with the `XdndFinished` 
 
 ```c
     else if (version >= 2) {
-        XEvent reply = { ClientMessage };
-        reply.xclient.window = source;
         reply.xclient.message_type = XdndFinished;
-        reply.xclient.format = 32;
-        reply.xclient.data.l[0] = (long) window;
-        reply.xclient.data.l[1] = 0;
-        reply.xclient.data.l[2] = None;
 
         XSendEvent((Display*) display, source,
             False, NoEventMask, &reply);
@@ -375,13 +376,11 @@ if (data)
 the drop has ended and XDnD versions 2 and older require the target to tell the source when the drop has ended.
 This can be done by sending out a `ClientMessage` event with the `XdndFinished` message type.
 
+It will also include the action we did with the data and the result to tell the source wether or not we actually got the data.
+
 ```c
 if (version >= 2) {
-    XEvent reply = { ClientMessage };
-    reply.xclient.window = source;
     reply.xclient.message_type = XdndFinished;
-    reply.xclient.format = 32;
-    reply.xclient.data.l[0] = (long) window;
     reply.xclient.data.l[1] = result;
     reply.xclient.data.l[2] = XdndActionCopy;
 
@@ -459,6 +458,14 @@ int main(void) {
 					break;
 				}
 				
+				XEvent reply = { ClientMessage };
+				reply.xclient.window = source;
+				reply.xclient.format = 32;
+				reply.xclient.data.l[0] = (long) window;
+				reply.xclient.data.l[2] = 0;
+				reply.xclient.data.l[3] = 0;
+
+
 				if (E.xclient.message_type == XdndEnter) {
 					unsigned long count;
 					Atom* formats;
@@ -541,13 +548,7 @@ int main(void) {
 					
 					printf("File drop starting at %i %i\n", xpos, ypos);
 					
-					XEvent reply = { ClientMessage };
-					reply.xclient.window = source;
 					reply.xclient.message_type = XdndStatus;
-					reply.xclient.format = 32;
-					reply.xclient.data.l[0] = (long) window;
-					reply.xclient.data.l[2] = 0;
-					reply.xclient.data.l[3] = 0;
 
 					if (format) {
 						reply.xclient.data.l[1] = 1;
@@ -574,13 +575,7 @@ int main(void) {
 							(Window) window,
 							time);
 					} else if (version >= 2) {
-						XEvent reply = { ClientMessage };
-						reply.xclient.window = source;
 						reply.xclient.message_type = XdndFinished;
-						reply.xclient.format = 32;
-						reply.xclient.data.l[0] = (long) window;
-						reply.xclient.data.l[1] = 0;
-						reply.xclient.data.l[2] = None;
 
 						XSendEvent((Display*) display, source,
 							False, NoEventMask, &reply);
@@ -615,11 +610,7 @@ int main(void) {
 				XFree(data);
 
 			if (version >= 2) {
-				XEvent reply = { ClientMessage };
-				reply.xclient.window = source;
 				reply.xclient.message_type = XdndFinished;
-				reply.xclient.format = 32;
-				reply.xclient.data.l[0] = (long) window;
 				reply.xclient.data.l[1] = result;
 				reply.xclient.data.l[2] = XdndActionCopy;
 

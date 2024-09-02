@@ -65,6 +65,14 @@ int main(void) {
 					break;
 				}
 				
+				XEvent reply = { ClientMessage };
+				reply.xclient.window = source;
+				reply.xclient.format = 32;
+				reply.xclient.data.l[0] = (long) window;
+				reply.xclient.data.l[2] = 0;
+				reply.xclient.data.l[3] = 0;
+
+
 				if (E.xclient.message_type == XdndEnter) {
 					unsigned long count;
 					Atom* formats;
@@ -147,13 +155,7 @@ int main(void) {
 					
 					printf("File drop starting at %i %i\n", xpos, ypos);
 					
-					XEvent reply = { ClientMessage };
-					reply.xclient.window = source;
 					reply.xclient.message_type = XdndStatus;
-					reply.xclient.format = 32;
-					reply.xclient.data.l[0] = (long) window;
-					reply.xclient.data.l[2] = 0;
-					reply.xclient.data.l[3] = 0;
 
 					if (format) {
 						reply.xclient.data.l[1] = 1;
@@ -180,13 +182,7 @@ int main(void) {
 							(Window) window,
 							time);
 					} else if (version >= 2) {
-						XEvent reply = { ClientMessage };
-						reply.xclient.window = source;
 						reply.xclient.message_type = XdndFinished;
-						reply.xclient.format = 32;
-						reply.xclient.data.l[0] = (long) window;
-						reply.xclient.data.l[1] = 0;
-						reply.xclient.data.l[2] = None;
 
 						XSendEvent((Display*) display, source,
 							False, NoEventMask, &reply);
@@ -221,11 +217,7 @@ int main(void) {
 				XFree(data);
 
 			if (version >= 2) {
-				XEvent reply = { ClientMessage };
-				reply.xclient.window = source;
 				reply.xclient.message_type = XdndFinished;
-				reply.xclient.format = 32;
-				reply.xclient.data.l[0] = (long) window;
 				reply.xclient.data.l[1] = result;
 				reply.xclient.data.l[2] = XdndActionCopy;
 
