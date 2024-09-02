@@ -26,7 +26,7 @@ A quick overview of the steps required:
 To handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). Atoms are used when sending or requesting specific data or actions. 
 
 `XdndTypeList` is used when the target window wants to know the data types the source window supports.\
-`XdndSelection` is used to examine the data selection after a drop and to retrieve the data after it is converted.\
+`XdndSelection` is used to examine the data selection after a drop and to retrieve the data after it is converted.
 
 ```c
 const Atom XdndTypeList = XInternAtom(display, "XdndTypeList", False);
