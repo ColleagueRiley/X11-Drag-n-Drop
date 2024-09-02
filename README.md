@@ -13,7 +13,7 @@ Then, the window's properties will be changed, allowing it to be aware of [XDND]
 When a drag happens, the window will receive a [`ClientMessage`](https://www.x.org/releases/X11R7.5/doc/man/man3/XClientMessageEvent.3.html) Event which includes an `XdndEnter` telling the target window that the drag has started.
 While the drag is in progress, the source window sends updates about the drag to the target window via ClientMessage events. Each time the target window gets an update, it must confirm it received the update; otherwise, the interaction will end. 
 Once the drop happens, the source window will send an `XdndDrop` message. Then the target window will convert the drop selection via X11 and will receive a [`SelectionNotify`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSelectionEvent.3.html) event to get the converted data. 
-The target window will handle this event, convert the data to a readable string, and then send a ClientMessage with the `XdndFinished` atom to tell the source window that the interaction is done. 
+The target window will handle this event, convert the data to a readable string, and finally send a ClientMessage with the `XdndFinished` atom to tell the source window that the interaction is done. 
 
 A quick overview of the steps required:
 
@@ -256,7 +256,7 @@ Now the absolute X and Y can be translated to the actual X and Y coordinates of 
     printf("File drop starting at %i %i\n", xpos, ypos);
 ```
 
-Now a response must be sent back to the source window. The response uses `XdndStatus` to tell the window it has received the message. 
+A response must be sent back to the source window. The response uses `XdndStatus` to tell the window it has received the message. 
 
 We should also tell the source the action accepted will the data. (`XdndActionCopy`)
 
@@ -293,7 +293,7 @@ First, we should make sure we registered a valid format earlier.
     if (format) {
 ```
 
-Now we can use [XConvertSection](https://tronche.com/gui/x/xlib/window-information/XConvertSelection.html) to request that the selection be converted to the format. 
+We can use [XConvertSection](https://tronche.com/gui/x/xlib/window-information/XConvertSelection.html) to request that the selection be converted to the format. 
 
 We will get the result in a `SelectionNotify` event.
 
@@ -343,7 +343,7 @@ if (E.xselection.property != XdndSelection)
     break;
 ```
 
-Now, `XGetWindowpropery` can be used to get the selection data.
+`XGetWindowpropery` can be used to get the selection data.
 
 ```c
 char* data;
