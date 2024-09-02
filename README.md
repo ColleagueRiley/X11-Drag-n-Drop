@@ -23,7 +23,7 @@ A quick overview of the steps required:
 4) Get XDnD drop data via `ClientMessage` and end the interaction
 
 # Step 1 (Define X11 Atoms)
-To handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). Atoms are used for sending or requesting specific data or actions. 
+To handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). Atoms are used when sending or requesting specific data or actions. 
 
 `XdndTypeList` is used when the target window wants to know the data types the source window supports. 
 `XdndSelection` is used to examine the data during a drag and to retrieve the data after a drop.
@@ -95,7 +95,7 @@ The ClientMessage event structure can be accessed via `XEvent.xclient`.
 
 `message_type` is an attribute in the structure, it holds what the message type is. We will use it to check if the message type is an XDnD message.
 
-There are XDnD 3 events we will handle, `XdndEnter`, `XdndPosition`, and `XdndDrop`.
+There are 3 XDnD events we will handle, `XdndEnter`, `XdndPosition`, and `XdndDrop`.
 
 ### Step 3.1 (XdndEnter)
 
@@ -210,6 +210,7 @@ The list should also be freed using [`XFree`](https://software.cfht.hawaii.edu/m
 XdndPosition is used when the drop position is updated.
 
 Before we handle the event, make sure the version is correct.
+
 ```c
 if (E.xclient.message_type == XdndPosition && version <= 5)) {
 ```
@@ -360,7 +361,7 @@ if (result == 0)
 printf("File dropped: %s\n", data);
 ```
 
-This is the raw string data for the drop. If there are multiple drops, it will include multiple files separated by a '\n'. If you'd prefer an array of strings, you'd have to parse the data into an array.
+This is the raw string data for the drop. If there are multiple drops, it will include the files separated by a '\n'. If you'd prefer an array of strings, you'd have to parse the data into an array.
 
 The data should also be freed once you're done using it. 
 
