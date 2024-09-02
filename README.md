@@ -128,9 +128,9 @@ if (E.xclient.message_type == XdndEnter) {
 
 First, RGFW inits the required variables.
 
-* count for the count of the format list, 
-* formats, the list of supported formats and 
-* real_formats which is used here to avoid running `malloc` for each drop
+* count: number of formats in the the format list, 
+* formats: the list of supported formats and 
+* real_formats: this is used here to avoid running `malloc` for each drop
 
 ```c
     unsigned long count;
