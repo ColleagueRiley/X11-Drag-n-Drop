@@ -26,7 +26,7 @@ A quick overview of the steps required:
 To handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). Atoms are used when sending or requesting specific data or actions. 
 
 `XdndTypeList` is used when the target window wants to know the data types the source window supports. 
-`XdndSelection` is used to examine the data during a drag and to retrieve the data after a drop.
+`XdndSelection` is used to examine the data selection after a drop to retrieve the data after it was converted.
 
 ```c
 const Atom XdndTypeList = XInternAtom(display, "XdndTypeList", False);
@@ -37,7 +37,7 @@ These generic `Xdnd` atoms are messages sent by the source window.
 
 `XdndEnter`, is used when the drop has entered the target window
 `XdndPosition` is used to update the target window on the position of the drop
-`XdndStatus` is used  
+`XdndStatus` is used to tell the window it has received the message.
 `XdndLeave` is used when the drop has left the target window 
 `XdndDrop` is used when the drop has been dropped into the target window
 `XdndFinished` is used when the drop has been finished
@@ -241,7 +241,7 @@ Now the absolute X and Y can be translated to the actual X and Y coordinates of 
     printf("File drop starting at %i %i\n", xpos, ypos);
 ```
 
-Now a response must be sent back to the source window. The response uses `XdndStatus` to tell the window it has recvied the message. 
+Now a response must be sent back to the source window. The response uses `XdndStatus` to tell the window it has received the message. 
 
 We should also tell the source the action accepted will the data. (`XdndActionCopy`)
 
