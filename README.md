@@ -26,18 +26,18 @@ A quick overview of the steps required:
 To handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). Atoms are used when sending or requesting specific data or actions. 
 
 `XdndTypeList` is used when the target window wants to know the data types the source window supports. 
-`XdndSelection` is used to examine the data selection after a drop to retrieve the data after it was converted.
+`XdndSelection` is used to examine the data selection after a drop and to retrieve the data after it is converted.
 
 ```c
 const Atom XdndTypeList = XInternAtom(display, "XdndTypeList", False);
 const Atom XdndSelection = XInternAtom(display, "XdndSelection", False);
 ```
 
-These generic `Xdnd` atoms are messages sent by the source window.
+These generic `Xdnd` atoms are messages sent by the source window except for `XdndStatus`.
 
 `XdndEnter`, is used when the drop has entered the target window
 `XdndPosition` is used to update the target window on the position of the drop
-`XdndStatus` is used to tell the window it has received the message.
+`XdndStatus` is used to tell the source window that the target has received the message.
 `XdndLeave` is used when the drop has left the target window 
 `XdndDrop` is used when the drop has been dropped into the target window
 `XdndFinished` is used when the drop has been finished
@@ -59,7 +59,7 @@ Xdnd Actions are actions the target window wants to make with the drag data.
 const Atom XdndActionCopy = XInternAtom(display, "XdndActionCopy", False);
 ```
 
-The `text/uri-list` and `text/plain` atoms needed for checking the format of the drop data.
+The `text/uri-list` and `text/plain` atoms are needed to check the format of the drop data.
 
 ```c	
 const Atom XtextUriList = XInternAtom((Display*) display, "text/uri-list", False); 
@@ -99,7 +99,7 @@ Now the [`ClientMessage`](E.xclient.message_type)  event can be handled.
 case ClientMessage:
 ```
 
-First, I will create a generic XEvent structure for replying to XDnD events. This is optional, but it will mean we will have to do less work.
+First, I will create a generic XEvent structure to reply to XDnD events. This is optional, but in using it we will have to do less work.
 
 This will send the event to the source window and include our window (the target) in the data.
 
