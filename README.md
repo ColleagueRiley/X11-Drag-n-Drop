@@ -1,19 +1,19 @@
 # RGFW Under the Hood: X11 Drag 'n Drop
 
 ## Introduction
-In order to handle Drag 'n Drop events through with X11, you must use the XDnD protocall. Well the XDnD protocall is significantly more complicated than other Drag 'n Drop APIs, it's still relatively simple in theory. Although the theory is simple, implementing is very tedious. This is because you must properly comminucate with the X11 server and the source window in order to get your desired results.
+To handle Drag 'n Drop events with X11, you must use the XDnD protocol. Although the XDnD protocol is significantly more complicated than other Drag 'n Drop APIs, it's still relatively simple in theory. Although the theory is simple, implementing it is very tedious. This is because you must properly communicate with the X11 server and the source window in order to get your desired results.
 
-This tutorial attemps to explain how to handle the XDnD protocall and manage X11 Drag 'n Drop events. The code in this tutorial is based on RGFW's [source code](https://github.com/ColleagueRiley/RGFW).
+This tutorial attempts to explain how to handle the XDnD protocol and manage X11 Drag 'n Drop events. The code is based on RGFW's [source code](https://github.com/ColleagueRiley/RGFW).
 
 ## Overview
 A detailed overview of the steps required:
 
-Firt, [X11 Atoms](https://tronche.com/gui/x/xlib/window-information/properties-and-atoms.html) will be initalized. X11 Atoms are used to ask for or send specific data or properties through X11. 
+First, [X11 Atoms](https://tronche.com/gui/x/xlib/window-information/properties-and-atoms.html) will be initiated. X11 Atoms are used to ask for or send specific data or properties through X11. 
 Then, the window's properties will be changed, allowing it to be aware of [XDND](https://freedesktop.org/wiki/Specifications/XDND/) (X Drag 'n Drop) events. 
-When a drop happens, the window will recieve a [`ClientMessage`](https://www.x.org/releases/X11R7.5/doc/man/man3/XClientMessageEvent.3.html) Event which includes a `XdndEnter` telling the target window that the a has started.
-While the drop is in progress, the source window will send updates about the drop to the target window via ClientMessage events. Each time the target window gets a update, it must confirm it recieved the update otherwise the interaction will end. 
-Once the drop actually happens, the target window will recieve a [`SelectionNotify`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSelectionEvent.3.html) event. 
-The target window will handle this event, convert the data to a readable string and then send a ClientMessage with the `XdndFinished` atom to tell the source window that the interaction is done. 
+When a drop happens, the window will receive a [`ClientMessage`](https://www.x.org/releases/X11R7.5/doc/man/man3/XClientMessageEvent.3.html) Event which includes an `XdndEnter` telling the target window that the a has started.
+While the drop is in progress, the source window sends updates about the drop to the target window via ClientMessage events. Each time the target window gets an update, it must confirm that it received the update; otherwise, the interaction will end. 
+Once the drop happens, the target window will receive a [`SelectionNotify`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSelectionEvent.3.html) event. 
+The target window will handle this event, convert the data to a readable string, and then send a ClientMessage with the `XdndFinished` atom to tell the source window that the interaction is done. 
 
 A quick overview of the steps required:
 
@@ -23,10 +23,10 @@ A quick overview of the steps required:
 4) Get XDnD drop data via `ClientMessage` and end the interaction
 
 # Step 1 (Define X11 Atoms)
-In order to handle XDnD events, XDnD atoms must be initalized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). These Atoms are used for sending or requesting specific data or actions. 
+In order to handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). These Atoms are used for sending or requesting specific data or actions. 
 
-`XdndTypeList` is used when the target window wants to know the data types the source widnow has supports. 
-`XdndSelection` is used to to examine the data during a drag and to retrive the data after a drop. This is used by both the source and target window.
+`XdndTypeList` is used when the target window wants to know the data types the source window supports. 
+`XdndSelection` is used to examine the data during a drag and to retrieve the data after a drop. This is used by both the source and target window.
 
 ```c
 const Atom XdndTypeList = XInternAtom(display, "XdndTypeList", False);
@@ -61,11 +61,11 @@ const Atom XdndActionCopy = XInternAtom(display, "XdndActionCopy", False);
 
 # Step 2 (Enable XDnD events for the window)
 
-In order to recieve XDnD events, the window must enable the `XDndAware` atom. This atom tells the window manager and the source window that the window wants to recieve XDnD events.
+To receive XDnD events, the window must enable the `XDndAware` atom. This atom tells the window manager and the source window that the window wants to receive XDnD events.
 
 This can be done by creating an `XdndAware` atom and using [`XChangeProperty`](https://tronche.com/gui/x/xlib/window-information/XChangeProperty.html) to change the window's `XdndAware` property.
 
-You also must set the XDnD version using a pointer, version 5 should be used as it is the newest version of the XDnD protocall.
+You also must set the XDnD version using a pointer, version 5 should be used as it is the newest version of the XDnD protocol.
 
 ```c
 const Atom XdndAware = XInternAtom(display, "XdndAware", False);
@@ -78,7 +78,7 @@ XChangeProperty(display, window, XdndAware, 4, 32, PropModeReplace, &myversion, 
 Before any events are handled, some variables must be defined. 
 These variables will be given to us by the source window and will be used across multiple instances.  
 
-These variables are, the source (of the drop), the XDnD Protocall version used and the format of the drop data.
+These variables are the source (of the drop), the XDnD Protocall version used, and the format of the drop data.
 
 ```c
 int64_t source, version;
@@ -95,7 +95,7 @@ The ClientMessage event structure can be accessed via `XEvent.xclient`.
 
 `message_type` is an attribute in the structure, it holds what the message type is. We will use it to check if the message type is an XDnD message.
 
-There are XDnD 3 events we will handle, `XdndEnter`, `XdndPosition` and `XdndDrop`.
+There are XDnD 3 events we will handle, `XdndEnter`, `XdndPosition`, and `XdndDrop`.
 
 ### Step 3.1 (XdndEnter)
 
@@ -126,7 +126,7 @@ the first item is the source window.
 The second item of the data includes two values, if the format is a list or not and the version of XDnD used.  
 To get the bool value, you can simply check the first bit, the version is stored 24 bits after (the final 40 bits). 
 
-The format should be set to None for now, also make sure the version is less than or equals to 5. Otherwise there's probably an issue because 5 is the newest version.
+The format should be set to None for now, also make sure the version is less than or equal to 5. Otherwise, there's probably an issue because 5 is the newest version.
 
 ```c
     Bool list = E.xclient.data.l[1] & 1;
@@ -162,7 +162,7 @@ If the format is a list, we'll have to get the format list from the source windo
     } 
 ```
 
-Otherwise the format can be found using the leftover xclient values (2 - 4)
+Otherwise, the format can be found using the leftover xclient values (2 - 4)
 
 ```c
     else {
@@ -181,7 +181,7 @@ Otherwise the format can be found using the leftover xclient values (2 - 4)
 
 Now that we have the format array, we can check if the format matches any of the formats we're looking for.
 
-The list should also be freed using [`XFree`](https://software.cfht.hawaii.edu/man/x11/XFree(3x)) if it was recived using `XGetWindowProperty`.
+The list should also be freed using [`XFree`](https://software.cfht.hawaii.edu/man/x11/XFree(3x)) if it was received using `XGetWindowProperty`.
 
 ```c
     uint32_t i, j;
@@ -224,7 +224,7 @@ The Y = the first 32 bits.
     const int32_t yabs = (E.xclient.data.l[2]) & 0xffff;
 ```
 
-Now the absolute X and Y can be translated to the actual X and Y coordanates of the drop position using [XTranslateCoordinates](https://tronche.com/gui/x/xlib/window-information/XTranslateCoordinates.html).
+Now the absolute X and Y can be translated to the actual X and Y coordinates of the drop position using [XTranslateCoordinates](https://tronche.com/gui/x/xlib/window-information/XTranslateCoordinates.html).
 
 ```c
     Window dummy;
@@ -244,7 +244,7 @@ Now a response must be sent back to the source window. The response uses `XdndSt
 
 We should also tell the source the action accepted will the data. (`XdndActionCopy`)
 
-The message can be sound out via [`XSendEvent`](https://tronche.com/gui/x/xlib/event-handling/XSendEvent.html) make sure you also send out [`XFlush`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSync.3.html) to make sure the event is puhsed out.
+The message can be sound out via [`XSendEvent`](https://tronche.com/gui/x/xlib/event-handling/XSendEvent.html) make sure you also send out [`XFlush`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSync.3.html) to make sure the event is pushed out.
 
 
 ```c
@@ -271,19 +271,19 @@ The message can be sound out via [`XSendEvent`](https://tronche.com/gui/x/xlib/e
 ### Step 3.3 (XdndDrop)
 Before we handle the event, make sure the version is correct.
 
-XdndDrop occours when the item has been dropped.
+XdndDrop occurs when the item has been dropped.
 
 ```c
 if (E.xclient.message_type = XdndDrop && version <= 5) {
 ```
 
-First we should make sure we actually registered a valid format ealier. 
+First, we should make sure we actually registered a valid format earlier. 
 
 ```c
     if (format) {
 ```
 
-Now we can use [XConvertSection](https://tronche.com/gui/x/xlib/window-information/XConvertSelection.html) to rrequest that the selection is converted to the format. 
+Now we can use [XConvertSection](https://tronche.com/gui/x/xlib/window-information/XConvertSelection.html) to request that the selection be converted to the format. 
 
 We will get the result in a `SelectionNotify` event.
 
@@ -302,7 +302,7 @@ We will get the result in a `SelectionNotify` event.
     } 
 ```
 
-Else, there is no drop data and the drop has ended. XDnD versions 2 and older require the target explictially tell the source when the drop has ended.
+Otherwise, there is no drop data and the drop has ended. XDnD versions 2 and older require the target explicitly tell the source when the drop has ended.
 
 This can be done by sending out a `ClientMessage` event with the `XdndFinished` message type.
 
@@ -324,13 +324,13 @@ This can be done by sending out a `ClientMessage` event with the `XdndFinished` 
 ```
 
 # Step 4 (Get XDnD drop data via ClientMessage and end the interaction)
-Now we can recive the converted selection from the `SlectionNotify` event
+Now we can receive the converted selection from the `SlectionNotify` event
 
 ```c
 case SelectionNotify: {
 ```
 
-To do this, first make sure the property that was converted was the XdndSelection. 
+To do this, first, make sure the property that was converted was the XdndSelection. 
 
 ```c
 /* this is only for checking for drops */
@@ -360,11 +360,11 @@ if (result == 0)
 printf("File dropped: %s\n", data);
 ```
 
-This is the raw string data for the drop. If there are multiple drops, it will include multiple files seperated by a '\n'. If you'd prefer to have an array of strings, you'd have to parse the data into an array.
+This is the raw string data for the drop. If there are multiple drops, it will include multiple files separated by a '\n'. If you'd prefer to have an array of strings, you'd have to parse the data into an array.
 
 The data should also be freed once you're done using it. 
 
-If you want to use it after the event is done you should allocate a seperate buffer and copy the data over.
+If you want to use it after the event is done you should allocate a separate buffer and copy the data over.
 
 ```c
 if (data)
