@@ -3,8 +3,6 @@
 
 #include <X11/Xlib.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <stdint.h>
 #include <limits.h>
@@ -41,6 +39,9 @@ int main(void) {
 	const Atom XdndActionLink = XInternAtom(display, "XdndActionLink", False);
 	const Atom XdndActionAsk = XInternAtom(display, "XdndActionAsk", False);
 	const Atom XdndActionPrivate = XInternAtom(display, "XdndActionPrivate", False);
+	
+	const Atom XtextUriList = XInternAtom((Display*) display, "text/uri-list", False); 
+	const Atom XtextPlain = XInternAtom((Display*) display, "text/plain", False);
 
 	const Atom XdndAware = XInternAtom(display, "XdndAware", False);
 	const char myVersion = 5;
@@ -117,17 +118,11 @@ int main(void) {
 						formats = real_formats;
 					}
 
-					uint32_t i, j;
-					for (i = 0; i < (uint32_t)count; i++) {
-						char* name = XGetAtomName((Display*) display, formats[i]);
-
-						char* links[2] = {"text/uri-list", "text/plain" };
-						for (j = 0; j < 2; j++) {
-							if (strcmp(name, links[j]) == 0) {
-								format = formats[i];
-								i = count + 1;
-								break;
-							}
+					unsigned long i;
+					for (i = 0; i < count; i++) {
+						if (formats[i] == XtextUriList || formats[i] == XtextPlain) {
+							format = formats[i];
+							break;
 						}
 					}
 					
