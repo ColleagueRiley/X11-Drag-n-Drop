@@ -258,7 +258,7 @@ The absolute X and Y can be translated to the actual X and Y coordinates of the 
 
 A response must be sent back to the source window. The response uses `XdndStatus` to tell the window it has received the message. 
 
-We should also tell the source the action accepted will the data. (`XdndActionCopy`)
+We should also tell the source the action accepted with the data. (`XdndActionCopy`)
 
 The message can be sound out via [`XSendEvent`](https://tronche.com/gui/x/xlib/event-handling/XSendEvent.html) make sure you also send out [`XFlush`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSync.3.html) to make sure the event is pushed out.
 
