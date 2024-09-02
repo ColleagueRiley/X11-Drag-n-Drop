@@ -25,8 +25,8 @@ A quick overview of the steps required:
 # Step 1 (Define X11 Atoms)
 To handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). Atoms are used when sending or requesting specific data or actions. 
 
-`XdndTypeList` is used when the target window wants to know the data types the source window supports. 
-`XdndSelection` is used to examine the data selection after a drop and to retrieve the data after it is converted.
+`XdndTypeList` is used when the target window wants to know the data types the source window supports.\
+`XdndSelection` is used to examine the data selection after a drop and to retrieve the data after it is converted.\
 
 ```c
 const Atom XdndTypeList = XInternAtom(display, "XdndTypeList", False);
@@ -35,12 +35,12 @@ const Atom XdndSelection = XInternAtom(display, "XdndSelection", False);
 
 These generic `Xdnd` atoms are messages sent by the source window except for `XdndStatus`.
 
-`XdndEnter`, is used when the drop has entered the target window
-`XdndPosition` is used to update the target window on the position of the drop
-`XdndStatus` is used to tell the source window that the target has received the message.
-`XdndLeave` is used when the drop has left the target window 
-`XdndDrop` is used when the drop has been dropped into the target window
-`XdndFinished` is used when the drop has been finished
+`XdndEnter`, is used when the drop has entered the target window.\
+`XdndPosition` is used to update the target window on the position of the drop.\
+`XdndStatus` is used to tell the source window that the target has received the message.\
+`XdndLeave` is used when the drop has left the target window.\
+`XdndDrop` is used when the drop has been dropped into the target window.\
+`XdndFinished` is used when the drop has been finished.\
 
 ```c
 const Atom XdndEnter = XInternAtom(display, "XdndEnter", False);
@@ -53,7 +53,7 @@ const Atom XdndFinished = XInternAtom(display, "XdndFinished", False);
 
 Xdnd Actions are actions the target window wants to make with the drag data.
 
-`XdndActionCopy` is used when the target window wants to copy the drag data 
+`XdndActionCopy` is used when the target window wants to copy the drag data.
 
 ```c
 const Atom XdndActionCopy = XInternAtom(display, "XdndActionCopy", False);
