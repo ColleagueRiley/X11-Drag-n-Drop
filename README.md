@@ -260,7 +260,7 @@ A response must be sent back to the source window. The response uses `XdndStatus
 
 We should also tell the source the action accepted with the data. (`XdndActionCopy`)
 
-The message can be sound out via [`XSendEvent`](https://tronche.com/gui/x/xlib/event-handling/XSendEvent.html) make sure you also send out [`XFlush`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSync.3.html) to make sure the event is pushed out.
+The message can be sent out via [`XSendEvent`](https://tronche.com/gui/x/xlib/event-handling/XSendEvent.html) make sure you also send out [`XFlush`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSync.3.html) to make sure the event is pushed out.
 
 
 ```c
