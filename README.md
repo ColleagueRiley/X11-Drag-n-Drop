@@ -1,7 +1,7 @@
 # RGFW Under the Hood: X11 Drag 'n Drop
 
 ## Introduction
-To handle Drag 'n Drop events with X11, you must use the XDnD protocol. Although the XDnD protocol is significantly more complicated than other Drag 'n Drop APIs, it's still relatively simple in theory. However implementing it is very tedious, you must properly communicate with the X11 server and the source window.
+To handle Drag 'n Drop events with X11, you must use the XDnD protocol. Although the XDnD protocol is significantly more complicated than other Drag 'n Drop APIs, it's still relatively simple in theory. However, implementing it is tedious because it requires properly communicating with the X11 server and the source window.
 
 This tutorial explains how to handle the XDnD protocol and manage X11 Drag 'n Drop events. The code is based on RGFW's [source code](https://github.com/ColleagueRiley/RGFW).
 
@@ -10,8 +10,8 @@ A detailed overview of the steps required:
 
 First, [X11 Atoms](https://tronche.com/gui/x/xlib/window-information/properties-and-atoms.html) will be initialized. X11 Atoms are used to ask for or send specific data or properties through X11. 
 Then, the window's properties will be changed, allowing it to be aware of [XDND](https://freedesktop.org/wiki/Specifications/XDND/) (X Drag 'n Drop) events. 
-When a drop happens, the window will receive a [`ClientMessage`](https://www.x.org/releases/X11R7.5/doc/man/man3/XClientMessageEvent.3.html) Event which includes an `XdndEnter` telling the target window that the drop has started.
-While the drop is in progress, the source window sends updates about the drop to the target window via ClientMessage events. Each time the target window gets an update, it must confirm it received the update; otherwise, the interaction will end. 
+When a drag happens, the window will receive a [`ClientMessage`](https://www.x.org/releases/X11R7.5/doc/man/man3/XClientMessageEvent.3.html) Event which includes an `XdndEnter` telling the target window that the drag has started.
+While the drag is in progress, the source window sends updates about the drag to the target window via ClientMessage events. Each time the target window gets an update, it must confirm it received the update; otherwise, the interaction will end. 
 Once the drop happens, the source window will send an `XdndDrop` message. Then the target window will convert the drop selection via X11 and will receive a [`SelectionNotify`](https://www.x.org/releases/X11R7.5/doc/man/man3/XSelectionEvent.3.html) event to get the converted data. 
 The target window will handle this event, convert the data to a readable string, and then send a ClientMessage with the `XdndFinished` atom to tell the source window that the interaction is done. 
 
@@ -20,7 +20,7 @@ A quick overview of the steps required:
 1) Define X11 Atoms
 2) Enable XDnD events for the window
 3) Handle XDnD events via `ClientMessage`
-4) Get XDnD drop data via `ClientMessage` and end the interaction
+4) Get the XDnD drop data via `ClientMessage` and end the interaction
 
 # Step 1 (Define X11 Atoms)
 To handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). Atoms are used when sending or requesting specific data or actions. 
@@ -327,7 +327,7 @@ This can be done by sending out a `ClientMessage` event with the `XdndFinished` 
 }
 ```
 
-# Step 4 (Get XDnD drop data via ClientMessage and end the interaction)
+# Step 4 (Get the XDnD drop data via ClientMessage and end the interaction)
 Now we can receive the converted selection from the `SlectionNotify` event
 
 ```c
