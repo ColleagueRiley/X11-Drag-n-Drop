@@ -1,7 +1,7 @@
 # RGFW Under the Hood: X11 Drag 'n Drop
 
 ## Introduction
-To handle Drag 'n Drop events with X11, you must use the XDnD protocol. Although the XDnD protocol is significantly more complicated than other Drag 'n Drop APIs, it's still relatively simple in theory. Although the theory is simple, implementing it is very tedious. This is because you must properly communicate with the X11 server and the source window to get your desired results.
+To handle Drag 'n Drop events with X11, you must use the XDnD protocol. Although the XDnD protocol is significantly more complicated than other Drag 'n Drop APIs, it's still relatively simple in theory. Although the theory is simple, implementing it is very tedious. You must properly communicate with the X11 server and the source window to get your desired results.
 
 This tutorial explains how to handle the XDnD protocol and manage X11 Drag 'n Drop events. The code is based on RGFW's [source code](https://github.com/ColleagueRiley/RGFW).
 
@@ -26,7 +26,7 @@ A quick overview of the steps required:
 To handle XDnD events, XDnD atoms must be initialized via [`XInternAtom`](https://www.x.org/releases/X11R7.5/doc/man/man3/XInternAtom.3.html). Atoms are used for sending or requesting specific data or actions. 
 
 `XdndTypeList` is used when the target window wants to know the data types the source window supports. 
-`XdndSelection` is used to examine the data during a drag and to retrieve the data after a drop. It is used by both the source and target window.
+`XdndSelection` is used to examine the data during a drag and to retrieve the data after a drop.
 
 ```c
 const Atom XdndTypeList = XInternAtom(display, "XdndTypeList", False);
@@ -76,7 +76,7 @@ XChangeProperty(display, window, XdndAware, 4, 32, PropModeReplace, &myversion, 
 
 # Step 3 (Handle XDnD events via ClientMessage)
 Before any events are handled, some variables must be defined. 
-These variables will be given to us by the source window and will be used across multiple instances.  
+These variables are given to us by the source window and are used across multiple instances.  
 
 These variables are the source (of the drop), the XDnD Protocall version used, and the format of the drop data.
 
@@ -85,7 +85,7 @@ int64_t source, version;
 int32_t format;
 ```
 
-Now the [`ClientMessage`](E.xclient.message_type)  event can be handled.
+The [`ClientMessage`](E.xclient.message_type)  event can be handled.
 
 ```c
 case ClientMessage:
@@ -302,7 +302,7 @@ We will get the result in a `SelectionNotify` event.
     } 
 ```
 
-Otherwise, there is no drop data and the drop has ended. XDnD versions 2 and older require the target to explicitly tell the source when the drop has ended.
+Otherwise, there is no drop data and the drop has ended. XDnD versions 2 and older require the target to tell the source when the drop has ended.
 
 This can be done by sending out a `ClientMessage` event with the `XdndFinished` message type.
 
@@ -330,7 +330,7 @@ Now we can receive the converted selection from the `SlectionNotify` event
 case SelectionNotify: {
 ```
 
-To do this, first, make sure the property that was converted was the XdndSelection. 
+To do this, first, ensure the property is the XdndSelection. 
 
 ```c
 /* this is only for checking for drops */
@@ -371,7 +371,7 @@ if (data)
     XFree(data);
 ```
 
-the drop has ended and XDnD versions 2 and older require the target to explictially tell the source when the drop has ended.
+the drop has ended and XDnD versions 2 and older require the target to tell the source when the drop has ended.
 This can be done by sending out a `ClientMessage` event with the `XdndFinished` message type.
 
 ```c
