@@ -312,7 +312,7 @@ We will get the result in an `SelectionNotify` event.
     } 
 ```
 
-Otherwise, there is no drop data and the drop has ended. XDnD versions 2 and older require the target to tell the source when the drop has ended.
+Otherwise, there is no drop data and the drop has ended. XDnD versions 2 and newer require the target to tell the source when the drop has ended.
 
 This can be done by sending out a `ClientMessage` event with the `XdndFinished` message type.
 
@@ -375,7 +375,7 @@ if (data)
     XFree(data);
 ```
 
-the drop has ended and XDnD versions 2 and older require the target to tell the source when the drop has ended.
+the drop has ended and XDnD versions 2 and newer require the target to tell the source when the drop has ended.
 This can be done by sending out a `ClientMessage` event with the `XdndFinished` message type.
 
 It will also include the action we did with the data and the result to tell the source wether or not we actually got the data.
